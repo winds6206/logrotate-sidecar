@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logrotate-sidecar
+  namespace: default
+  labels:
+    app: logrotate-sidecar
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logrotate-sidecar
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: logrotate-sidecar
+    spec:
+      restartPolicy: Always
+      containers:
+      containers:
+        - name: nginx
+          image: nginxdemos/hello:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-logs
+              mountPath: /var/log/nginx/
+        - name: logrotate
+          image: blacklabelops/logrotate:1.3
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Asia/Taipei
+            - name: LOGROTATE_INTERVAL
+              value: daily
+            - name: LOGS_DIRECTORIES
+              value: /var/log/custom
+            - name: LOGROTATE_MODE
+              value: "create 0777"
+            - name: LOGROTATE_COPIES
+              value: "1"
+#            - name: LOGROTATE_SIZE
+#              value: "1k"
+#            - name: LOGROTATE_CRONSCHEDULE
+#              value: "* * * * * *"
+          volumeMounts:
+            - name: nginx-logs
+              mountPath: /var/log/custom/
+      volumes:
+        - name: nginx-logs
+          emptyDir: {}
